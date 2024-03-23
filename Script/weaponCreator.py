@@ -120,8 +120,7 @@ class SetBarrelLogic(bpy.types.Operator):
 
     def execute(self, context):
         global weapon_barrel_index
-         
-
+        
         # Increment the index to show the next barrel, cycle back to 0 after "None"
         weapon_barrel_index = (weapon_barrel_index + 1) % (len(weapon_barrel_objects) + 1) # +1 for the "None" option
         
@@ -142,64 +141,53 @@ class SetBarrelLogic(bpy.types.Operator):
 
 weapon_scope_objects = ['ScopeSmall', 'ScopeMedium', 'ScopeBig']
 weapon_scope_index = 0
-weapon_scope_minimum_position = 0.2
-weapon_scope_current_position = 0.2
+
+weapon_scope_current_position = 0.1
+weapon_scope_minimum_positions = [0.1, 0.1, -0.1]
+weapon_scope_maximum_positions = [0.5, 1, 1.3]
 
 def update_scope_position(self, context):
     global weapon_scope_index
+    global weapon_scope_current_position
     active_scope_name = weapon_scope_objects[weapon_scope_index]
     active_scope = bpy.data.objects.get(active_scope_name)
 
     if active_scope:
-        if (weapon_base_index == 0):
-            weapon_scope_current_position = context.object.weapon_scope_position_small
-        elif (weapon_base_index == 1):
-            weapon_scope_current_position = context.object.weapon_scope_position_medium
-        elif (weapon_base_index == 2):
-            weapon_scope_current_position = context.object.weapon_scope_position_big
-        
+        weapon_scope_current_position = context.object.weapon_scope_position
         active_scope.location.y = weapon_scope_current_position
 
 def update_scope_position_on_change(context):
+    update_weapon_scope_property(weapon_scope_minimum_positions[weapon_base_index], weapon_scope_maximum_positions[weapon_base_index])
+
+    global weapon_scope_current_position
     active_scope_name = weapon_scope_objects[weapon_scope_index]
     active_scope = bpy.data.objects.get(active_scope_name)
 
     if active_scope:
-        if (weapon_base_index == 0):
-            context.object.weapon_scope_position_small = weapon_scope_current_position
-        elif (weapon_base_index == 1):
-            context.object.weapon_scope_position_medium = weapon_scope_current_position
-        elif (weapon_base_index == 2):
-            context.object.weapon_scope_position_big = weapon_scope_current_position
-        
+        context.object.weapon_scope_position = weapon_scope_current_position
         active_scope.location.y = weapon_scope_current_position
 
-bpy.types.Object.weapon_scope_position_small = bpy.props.FloatProperty(
-    name="Position", 
-    description="Change the position of the scope",
-    default=weapon_scope_minimum_position,
-    min=weapon_scope_minimum_position, 
-    max=0.5,
-    update=update_scope_position
-)
+def update_weapon_scope_property(min_value, max_value):
+    def get_weapon_scope_position(self):
+        return self.get('weapon_scope_position', min_value)
 
-bpy.types.Object.weapon_scope_position_medium = bpy.props.FloatProperty(
-    name="Position", 
-    description="Change the position of the scope",
-    default=weapon_scope_minimum_position,
-    min=weapon_scope_minimum_position, 
-    max=1,
-    update=update_scope_position
-)
+    def set_weapon_scope_position(self, value):
+        self['weapon_scope_position'] = max(min(value, max_value), min_value)
+    
+    # Redefine the property with the new min and max values
+    bpy.types.Object.weapon_scope_position = bpy.props.FloatProperty(
+        name="Position",
+        description="Change the position of the scope",
+        default=min_value,
+        min=min_value,
+        max=max_value,
+        get=get_weapon_scope_position,
+        set=set_weapon_scope_position,
+        update=update_scope_position
+    )
 
-bpy.types.Object.weapon_scope_position_big = bpy.props.FloatProperty(
-    name="Position", 
-    description="Change the position of the scope",
-    default=weapon_scope_minimum_position,
-    min=weapon_scope_minimum_position, 
-    max=1.3,
-    update=update_scope_position
-)
+# Initial setup call with the initial min and max values
+update_weapon_scope_property(weapon_scope_minimum_positions[weapon_base_index], weapon_scope_maximum_positions[weapon_base_index])
 
 class SetScopePanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
@@ -210,14 +198,7 @@ class SetScopePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-
-        if (weapon_base_index == 0):
-            col.prop(context.object, "weapon_scope_position_small", slider=True) 
-        elif (weapon_base_index == 1):
-            col.prop(context.object, "weapon_scope_position_medium", slider=True)
-        elif (weapon_base_index == 2):
-            col.prop(context.object, "weapon_scope_position_big", slider=True)
-
+        col.prop(context.object, "weapon_scope_position", slider=True) 
         col.operator("object.set_scope_logic", text="Change Scope")
         current_scope = "None" if weapon_scope_index >= len(weapon_scope_objects) else weapon_scope_objects[weapon_scope_index]
         col.label(icon="INFO", text=f"Selected: {current_scope}")
@@ -229,6 +210,7 @@ class SetScopeLogic(bpy.types.Operator):
 
     def execute(self, context):
         global weapon_scope_index
+        global weapon_scope_current_position
         
         # Increment the index to show the next scope, cycle back to 0 after "None"
         weapon_scope_index = (weapon_scope_index + 1) % (len(weapon_scope_objects) + 1) # +1 for the "None" option
