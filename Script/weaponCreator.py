@@ -83,6 +83,7 @@ class SetBaseLogic(bpy.types.Operator):
         #update other components on base change cos the size difference
         update_barrel_position()
         update_scope_position_on_change(context)
+        update_buttstock_position()
 
         return {'FINISHED'}
     
@@ -198,7 +199,7 @@ class SetScopePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.prop(context.object, "weapon_scope_position", slider=True) 
+        col.prop(context.object, "weapon_scope_position", slider=True)
         col.operator("object.set_scope_logic", text="Change Scope")
         current_scope = "None" if weapon_scope_index >= len(weapon_scope_objects) else weapon_scope_objects[weapon_scope_index]
         col.label(icon="INFO", text=f"Selected: {current_scope}")
@@ -230,6 +231,69 @@ class SetScopeLogic(bpy.types.Operator):
 
 #####################################################################
 
+weapon_buttstock_objects = ['ButtstockSmall', 'ButtstockMedium']
+weapon_buttstock_index = 0
+weapon_buttstock_positions = [-0.3, -0.3, -0.5]
+weapon_buttstock_current_position = 0
+
+def update_buttstock_position():
+    if weapon_buttstock_index < len(weapon_buttstock_objects):
+        active_buttstock = bpy.data.objects[weapon_buttstock_objects[weapon_buttstock_index]]
+        active_buttstock.location.y = weapon_buttstock_positions[weapon_base_index] + weapon_buttstock_current_position
+
+def update_buttstock_position_logic(self, context):
+    global weapon_buttstock_current_position
+    weapon_buttstock_current_position = self.weapon_buttstock_position
+    update_buttstock_position()
+
+bpy.types.Object.weapon_buttstock_position = bpy.props.FloatProperty(
+    name="Position",
+    description="Change the position of the buttstock",
+    default=0,
+    min=0,
+    max=1,
+    update=update_buttstock_position_logic
+)
+
+class SetButtstockPanel(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Weapon Creator"
+    bl_label = "Buttstock"
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        col.prop(context.object, "weapon_buttstock_position", slider=True)
+        col.operator("object.set_buttstock_logic", text="Change Buttstock")
+        buttstock_text = "None" if weapon_buttstock_index >= len(weapon_buttstock_objects) else weapon_buttstock_objects[weapon_buttstock_index]
+        col.label(icon="INFO", text=f"Selected: {buttstock_text}")
+
+class SetButtstockLogic(bpy.types.Operator):
+    """Select a part as the buttstock of the weapon"""
+    bl_idname = "object.set_buttstock_logic"
+    bl_label = "Set Buttstock Logic"
+
+    def execute(self, context):
+        global weapon_buttstock_index
+        weapon_buttstock_index = (weapon_buttstock_index + 1) % (len(weapon_buttstock_objects) + 1)  # +1 for the "None" option
+        
+        # Hide all buttstocks first
+        for obj_name in weapon_buttstock_objects:
+            if obj_name in bpy.data.objects:
+                bpy.data.objects[obj_name].hide_set(True)
+        
+        # Show the next buttstock if it's not the "None" option
+        if weapon_buttstock_index < len(weapon_buttstock_objects):
+            active_buttstock = bpy.data.objects[weapon_buttstock_objects[weapon_buttstock_index]]
+            active_buttstock.hide_set(False)
+            update_buttstock_position()
+
+        return {'FINISHED'}
+
+
+#####################################################################
+
 def register():
     bpy.utils.register_class(VIEW3D_PT_CustomPanel)
     bpy.utils.register_class(ClearSceneView)
@@ -243,6 +307,9 @@ def register():
     bpy.utils.register_class(SetScopePanel)
     bpy.utils.register_class(SetScopeLogic)
 
+    bpy.utils.register_class(SetButtstockPanel)
+    bpy.utils.register_class(SetButtstockLogic)
+
 def unregister():
     bpy.utils.unregister_class(VIEW3D_PT_CustomPanel)
     bpy.utils.unregister_class(ClearSceneView)
@@ -255,6 +322,9 @@ def unregister():
 
     bpy.utils.unregister_class(SetScopePanel)
     bpy.utils.unregister_class(SetScopeLogic)
+
+    bpy.utils.unregister_class(SetButtstockPanel)
+    bpy.utils.unregister_class(SetButtstockLogic)
 
 if __name__ == "__main__":
     register()
