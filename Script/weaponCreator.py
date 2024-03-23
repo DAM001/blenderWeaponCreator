@@ -84,6 +84,7 @@ class SetBaseLogic(bpy.types.Operator):
         update_barrel_position()
         update_scope_position_on_change(context)
         update_buttstock_position()
+        update_magazine_position_on_change(context)
 
         return {'FINISHED'}
     
@@ -290,8 +291,98 @@ class SetButtstockLogic(bpy.types.Operator):
             update_buttstock_position()
 
         return {'FINISHED'}
+    
+#####################################################################
 
+import bpy
 
+weapon_magazine_objects = ['MagazineSmall', 'MagazineMedium', 'MagazineBig']
+weapon_magazine_index = 0
+
+weapon_magazine_current_position = 0.1
+weapon_magazine_minimum_positions = [0.5, 0.5, 0.5]
+weapon_magazine_maximum_positions = [0.7, 1.2, 1.5]
+
+def update_magazine_position(self, context):
+    global weapon_magazine_index
+    global weapon_magazine_current_position
+
+    active_magazine_name = weapon_magazine_objects[weapon_magazine_index]
+    active_magazine = bpy.data.objects.get(active_magazine_name)
+
+    if active_magazine:
+        weapon_magazine_current_position = context.object.weapon_magazine_position
+        active_magazine.location.y = weapon_magazine_current_position
+
+def update_magazine_position_on_change(context):
+    update_weapon_magazine_property(weapon_magazine_minimum_positions[weapon_base_index], weapon_magazine_maximum_positions[weapon_base_index])
+
+    global weapon_magazine_current_position
+    if (weapon_magazine_index < len(weapon_magazine_objects)):
+        active_magazine_name = weapon_magazine_objects[weapon_magazine_index]
+        active_magazine = bpy.data.objects.get(active_magazine_name)
+
+        if active_magazine:
+            context.object.weapon_magazine_position = weapon_magazine_current_position
+            active_magazine.location.y = weapon_magazine_current_position
+
+def update_weapon_magazine_property(min_value, max_value):
+    def get_weapon_magazine_position(self):
+        return self.get('weapon_magazine_position', min_value)
+
+    def set_weapon_magazine_position(self, value):
+        self['weapon_magazine_position'] = max(min(value, max_value), min_value)
+    
+    bpy.types.Object.weapon_magazine_position = bpy.props.FloatProperty(
+        name="Position",
+        description="Change the position of the magazine",
+        default=min_value,
+        min=min_value,
+        max=max_value,
+        get=get_weapon_magazine_position,
+        set=set_weapon_magazine_position,
+        update=update_magazine_position
+    )
+
+update_weapon_magazine_property(weapon_magazine_minimum_positions[weapon_base_index], weapon_magazine_maximum_positions[weapon_base_index])
+
+class SetMagazinePanel(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Weapon Creator"
+    bl_label = "Magazine"
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        col.prop(context.object, "weapon_magazine_position", slider=True)
+        col.operator("object.set_magazine_logic", text="Change Magazine")
+        current_magazine = "None" if weapon_magazine_index >= len(weapon_magazine_objects) else weapon_magazine_objects[weapon_magazine_index]
+        col.label(icon="INFO", text=f"Selected: {current_magazine}")
+
+class SetMagazineLogic(bpy.types.Operator):
+    """Change the type of the magazine"""
+    bl_idname = "object.set_magazine_logic"
+    bl_label = "Set Magazine Logic"
+
+    def execute(self, context):
+        global weapon_magazine_index
+        global weapon_magazine_current_position
+        
+        weapon_magazine_index = (weapon_magazine_index + 1) % (len(weapon_magazine_objects) + 1)  # +1 for "None" option
+        
+        for obj_name in weapon_magazine_objects:
+            if obj_name in bpy.data.objects:
+                bpy.data.objects[obj_name].hide_set(True)
+        
+        if weapon_magazine_index < len(weapon_magazine_objects):
+            active_magazine = bpy.data.objects[weapon_magazine_objects[weapon_magazine_index]]
+            active_magazine.hide_set(False)
+            active_magazine.location.y = weapon_magazine_current_position
+
+        return {'FINISHED'}
+
+    
 #####################################################################
 
 def register():
@@ -310,6 +401,9 @@ def register():
     bpy.utils.register_class(SetButtstockPanel)
     bpy.utils.register_class(SetButtstockLogic)
 
+    bpy.utils.register_class(SetMagazinePanel)
+    bpy.utils.register_class(SetMagazineLogic)
+
 def unregister():
     bpy.utils.unregister_class(VIEW3D_PT_CustomPanel)
     bpy.utils.unregister_class(ClearSceneView)
@@ -325,6 +419,9 @@ def unregister():
 
     bpy.utils.unregister_class(SetButtstockPanel)
     bpy.utils.unregister_class(SetButtstockLogic)
+
+    bpy.utils.unregister_class(SetMagazinePanel)
+    bpy.utils.unregister_class(SetMagazineLogic)
 
 if __name__ == "__main__":
     register()
