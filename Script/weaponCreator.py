@@ -9,7 +9,7 @@ bl_info = {
 }
 
 import bpy
-import math
+from bpy_extras.io_utils import ExportHelper
 
 #####################################################################
 
@@ -17,12 +17,12 @@ class VIEW3D_PT_CustomPanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Weapon Creator"
-    bl_label = "View"
+    bl_label = "Weapon Creator by DAM"
 
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.lavel(icon="BLENDER", text="Modular weapon builder by DAM")
+        col.label(icon="BLENDER", text="Modular weapon builder by DAM")
         #col.operator("object.clear_scene_view", text="Clear Scene View")
 
 # Delete all the objects from the scene
@@ -50,8 +50,8 @@ class SetBasePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.operator("object.set_base_logic", text="Change base")
         col.label(icon="INFO", text=f"Selected: {weapon_base_objects[weapon_base_index]}")
+        col.operator("object.set_base_logic", text="Change base")
 
 class SetBaseLogic(bpy.types.Operator):
     """Select a part as the base of the weapon"""
@@ -78,7 +78,9 @@ class SetBaseLogic(bpy.types.Operator):
         # Hide all and then show the next object
         for obj_name in weapon_base_objects:
             bpy.data.objects[obj_name].hide_set(True)
+            bpy.data.objects[obj_name].hide_render = True
         bpy.data.objects[weapon_base_objects[weapon_base_index]].hide_set(False)
+        bpy.data.objects[weapon_base_objects[weapon_base_index]].hide_render = False
 
         #update other components on base change cos the size difference
         update_barrel_position()
@@ -111,9 +113,9 @@ class SetBarrelPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.operator("object.set_barrel_logic", text="Change Barrel")
         current_barrel = "None" if weapon_barrel_index >= len(weapon_barrel_objects) else weapon_barrel_objects[weapon_barrel_index]
         col.label(icon="INFO", text=f"Selected: {current_barrel}")
+        col.operator("object.set_barrel_logic", text="Change Barrel")
 
 class SetBarrelLogic(bpy.types.Operator):
     """Select a barrel for the weapon"""
@@ -130,10 +132,12 @@ class SetBarrelLogic(bpy.types.Operator):
         for obj_name in weapon_barrel_objects:
             if obj_name in bpy.data.objects:
                 bpy.data.objects[obj_name].hide_set(True)
+                bpy.data.objects[obj_name].hide_render = True
         
         # Show the next barrel if it's not the "None" option
         if weapon_barrel_index < len(weapon_barrel_objects):
             bpy.data.objects[weapon_barrel_objects[weapon_barrel_index]].hide_set(False)
+            bpy.data.objects[weapon_barrel_objects[weapon_barrel_index]].hide_render = False
 
         update_barrel_position()
 
@@ -200,10 +204,10 @@ class SetScopePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.prop(context.object, "weapon_scope_position", slider=True)
-        col.operator("object.set_scope_logic", text="Change Scope")
         current_scope = "None" if weapon_scope_index >= len(weapon_scope_objects) else weapon_scope_objects[weapon_scope_index]
         col.label(icon="INFO", text=f"Selected: {current_scope}")
+        col.prop(context.object, "weapon_scope_position", slider=True)
+        col.operator("object.set_scope_logic", text="Change Scope")
 
 class SetScopeLogic(bpy.types.Operator):
     """Select a scope for the weapon"""
@@ -221,11 +225,13 @@ class SetScopeLogic(bpy.types.Operator):
         for obj_name in weapon_scope_objects:
             if obj_name in bpy.data.objects:
                 bpy.data.objects[obj_name].hide_set(True)
+                bpy.data.objects[obj_name].hide_render = True
         
         # Show the next scope if it's not the "None" option
         if weapon_scope_index < len(weapon_scope_objects):
             active_scope = bpy.data.objects[weapon_scope_objects[weapon_scope_index]]
             active_scope.hide_set(False)
+            active_scope.hide_render = False
             active_scope.location.y = weapon_scope_current_position
 
         return {'FINISHED'}
@@ -265,10 +271,10 @@ class SetButtstockPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.prop(context.object, "weapon_buttstock_position", slider=True)
-        col.operator("object.set_buttstock_logic", text="Change Buttstock")
         buttstock_text = "None" if weapon_buttstock_index >= len(weapon_buttstock_objects) else weapon_buttstock_objects[weapon_buttstock_index]
         col.label(icon="INFO", text=f"Selected: {buttstock_text}")
+        col.prop(context.object, "weapon_buttstock_position", slider=True)
+        col.operator("object.set_buttstock_logic", text="Change Buttstock")
 
 class SetButtstockLogic(bpy.types.Operator):
     """Select a part as the buttstock of the weapon"""
@@ -283,19 +289,19 @@ class SetButtstockLogic(bpy.types.Operator):
         for obj_name in weapon_buttstock_objects:
             if obj_name in bpy.data.objects:
                 bpy.data.objects[obj_name].hide_set(True)
+                bpy.data.objects[obj_name].hide_render = True
         
         # Show the next buttstock if it's not the "None" option
         if weapon_buttstock_index < len(weapon_buttstock_objects):
             active_buttstock = bpy.data.objects[weapon_buttstock_objects[weapon_buttstock_index]]
             active_buttstock.hide_set(False)
+            active_buttstock.hide_render = False
             update_buttstock_position()
 
         return {'FINISHED'}
     
 #####################################################################
-
-import bpy
-
+    
 weapon_magazine_objects = ['MagazineSmall', 'MagazineMedium', 'MagazineBig']
 weapon_magazine_index = 0
 
@@ -355,10 +361,10 @@ class SetMagazinePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.prop(context.object, "weapon_magazine_position", slider=True)
-        col.operator("object.set_magazine_logic", text="Change Magazine")
         current_magazine = "None" if weapon_magazine_index >= len(weapon_magazine_objects) else weapon_magazine_objects[weapon_magazine_index]
         col.label(icon="INFO", text=f"Selected: {current_magazine}")
+        col.prop(context.object, "weapon_magazine_position", slider=True)
+        col.operator("object.set_magazine_logic", text="Change Magazine")
 
 class SetMagazineLogic(bpy.types.Operator):
     """Change the type of the magazine"""
@@ -374,15 +380,105 @@ class SetMagazineLogic(bpy.types.Operator):
         for obj_name in weapon_magazine_objects:
             if obj_name in bpy.data.objects:
                 bpy.data.objects[obj_name].hide_set(True)
+                bpy.data.objects[obj_name].hide_render = True
         
         if weapon_magazine_index < len(weapon_magazine_objects):
             active_magazine = bpy.data.objects[weapon_magazine_objects[weapon_magazine_index]]
             active_magazine.hide_set(False)
+            active_magazine.hide_render = False
             active_magazine.location.y = weapon_magazine_current_position
 
         return {'FINISHED'}
 
     
+#####################################################################
+
+class SaveFinalProduct(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Weapon Creator"
+    bl_label = "Save Model"
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        col.operator("object.save_final_product_image", text="Create Icon Image")
+        col.operator("object.save_final_product", text="Save Model")
+
+class SaveFinalProductImage(bpy.types.Operator, ExportHelper):
+    """Create an icon image from the weapon"""
+    bl_idname = "object.save_final_product_image"
+    bl_label = "Export Weapon Icon"
+    filename_ext = ".png"
+
+    filter_glob: bpy.props.StringProperty(
+        default='*.png',
+        options={'HIDDEN'}
+    )
+
+    def toggle_objects_visibility(self, objects_names, visibility):
+        for obj_name in objects_names:
+            obj = bpy.data.objects.get(obj_name)
+            if obj:
+                obj.hide_render = not visibility
+
+    def execute(self, context):
+        camera_name = 'Camera'
+        light_name = 'Light'
+        
+        # Ensure the scene uses RGBA to support transparency
+        context.scene.render.image_settings.color_mode = 'RGBA'
+        context.scene.render.filepath = self.filepath
+        
+        # Toggle the visibility of the camera and light
+        self.toggle_objects_visibility([camera_name, light_name], True)
+        
+        # Render the scene
+        bpy.ops.render.render(write_still=True)
+        
+        # Toggle the visibility of the camera and light back
+        self.toggle_objects_visibility([camera_name, light_name], False)
+
+        return {'FINISHED'}
+
+class SaveFinalProductLogic(bpy.types.Operator, ExportHelper):
+    """Save the final product as an '.fbx' file"""
+    bl_idname = "object.save_final_product"
+    bl_label = "Export Weapon"
+    filename_ext = ".fbx"
+
+    filter_glob: bpy.props.StringProperty(
+        default='*.fbx',
+        options={'HIDDEN'},
+    )
+
+    def execute(self, context):
+        output_path = self.filepath
+
+        # Filter visible objects
+        visible_objects = [obj for obj in context.view_layer.objects if obj.visible_get() and obj.type == 'MESH']
+        initial_active = context.view_layer.objects.active
+        initial_selection = [obj for obj in context.selected_objects]
+
+        # Deselect all objects
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # Select visible objects
+        for obj in visible_objects:
+            obj.select_set(True)
+
+        # Export the selected visible objects to FBX
+        bpy.ops.export_scene.fbx(filepath=output_path, use_selection=True)
+
+        # Restore initial selection
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in initial_selection:
+            obj.select_set(True)
+        context.view_layer.objects.active = initial_active
+
+        return {'FINISHED'}
+
+
 #####################################################################
 
 def register():
@@ -404,6 +500,10 @@ def register():
     bpy.utils.register_class(SetMagazinePanel)
     bpy.utils.register_class(SetMagazineLogic)
 
+    bpy.utils.register_class(SaveFinalProduct)
+    bpy.utils.register_class(SaveFinalProductImage)
+    bpy.utils.register_class(SaveFinalProductLogic)
+
 def unregister():
     bpy.utils.unregister_class(VIEW3D_PT_CustomPanel)
     bpy.utils.unregister_class(ClearSceneView)
@@ -422,6 +522,10 @@ def unregister():
 
     bpy.utils.unregister_class(SetMagazinePanel)
     bpy.utils.unregister_class(SetMagazineLogic)
+
+    bpy.utils.unregister_class(SaveFinalProduct)
+    bpy.utils.unregister_class(SaveFinalProductImage)
+    bpy.utils.unregister_class(SaveFinalProductLogic)
 
 if __name__ == "__main__":
     register()
