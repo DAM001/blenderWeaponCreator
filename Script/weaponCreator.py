@@ -22,7 +22,7 @@ class VIEW3D_PT_CustomPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.label(icon="BLENDER", text="Modular weapon builder by DAM")
+        col.label(icon="BLENDER", text="Modular weapon builder")
         #col.operator("object.clear_scene_view", text="Clear Scene View")
 
 # Delete all the objects from the scene
@@ -41,6 +41,12 @@ class ClearSceneView(bpy.types.Operator):
 weapon_base_objects = ['BaseSmall', 'BaseMedium', 'BaseBig']
 weapon_base_index = 0
 
+def update_weapon_base_index():
+    global weapon_base_index
+    active_obj = bpy.context.active_object
+    if active_obj and active_obj.name in weapon_base_objects:
+        weapon_base_index = weapon_base_objects.index(active_obj.name)
+
 class SetBasePanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -48,8 +54,10 @@ class SetBasePanel(bpy.types.Panel):
     bl_label = "Base"
 
     def draw(self, context):
+        update_weapon_base_index() 
         layout = self.layout
         col = layout.column(align=True)
+
         col.label(icon="INFO", text=f"Selected: {weapon_base_objects[weapon_base_index]}")
         col.operator("object.set_base_logic", text="Change base")
 
@@ -61,7 +69,7 @@ class SetBaseLogic(bpy.types.Operator):
     def execute(self, context):
         global weapon_base_index
         visible_obj = None
-        
+
         # Determine the currently visible object, if any
         for obj_name in weapon_base_objects:
             if bpy.data.objects[obj_name].visible_get():
