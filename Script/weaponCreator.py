@@ -41,12 +41,6 @@ class ClearSceneView(bpy.types.Operator):
 weapon_base_objects = ['BaseSmall', 'BaseMedium', 'BaseBig']
 weapon_base_index = 0
 
-def update_weapon_base_index():
-    global weapon_base_index
-    active_obj = bpy.context.active_object
-    if active_obj and active_obj.name in weapon_base_objects:
-        weapon_base_index = weapon_base_objects.index(active_obj.name)
-
 class SetBasePanel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -54,7 +48,6 @@ class SetBasePanel(bpy.types.Panel):
     bl_label = "Base"
 
     def draw(self, context):
-        update_weapon_base_index() 
         layout = self.layout
         col = layout.column(align=True)
 
@@ -171,15 +164,16 @@ def update_scope_position(self, context):
         active_scope.location.y = weapon_scope_current_position
 
 def update_scope_position_on_change(context):
-    update_weapon_scope_property(weapon_scope_minimum_positions[weapon_base_index], weapon_scope_maximum_positions[weapon_base_index])
+    if weapon_scope_index > len(weapon_scope_objects):
+        update_weapon_scope_property(weapon_scope_minimum_positions[weapon_base_index], weapon_scope_maximum_positions[weapon_base_index])
 
-    global weapon_scope_current_position
-    active_scope_name = weapon_scope_objects[weapon_scope_index]
-    active_scope = bpy.data.objects.get(active_scope_name)
+        global weapon_scope_current_position
+        active_scope_name = weapon_scope_objects[weapon_scope_index]
+        active_scope = bpy.data.objects.get(active_scope_name)
 
-    if active_scope:
-        context.object.weapon_scope_position = weapon_scope_current_position
-        active_scope.location.y = weapon_scope_current_position
+        if active_scope:
+            context.object.weapon_scope_position = weapon_scope_current_position
+            active_scope.location.y = weapon_scope_current_position
 
 def update_weapon_scope_property(min_value, max_value):
     def get_weapon_scope_position(self):
